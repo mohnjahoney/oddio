@@ -1,3 +1,4 @@
+import { createAudioAnalysisPackageStore } from "./analysis";
 import { createCurrentAudioStore } from "./audio";
 import "./styles.css";
 import { createLogger } from "./shared/logger";
@@ -12,6 +13,7 @@ import { renderWorkbench } from "./ui/workbench";
 
 const logger = createLogger("app");
 const currentAudioStore = createCurrentAudioStore();
+const audioAnalysisPackageStore = createAudioAnalysisPackageStore();
 
 const status: SystemStatus = {
   label: "Pipeline ready",
@@ -40,12 +42,12 @@ if (!app) {
 }
 
 renderWorkbench(app, { status, encodingParameters, decodingParameters });
-bindAudioWorkspaceView(app, currentAudioStore);
+bindAudioWorkspaceView(app, currentAudioStore, audioAnalysisPackageStore);
 bindEncoderControls(app, logger, currentAudioStore);
 bindAudioPlaybackControls(app, logger, currentAudioStore);
 bindAudioFileControls(app, logger, currentAudioStore);
 bindAudioRecordingControls(app, logger, currentAudioStore);
-bindDecodeControls(app, logger, currentAudioStore);
+bindDecodeControls(app, logger, currentAudioStore, audioAnalysisPackageStore);
 logger.info("ODDiO pipeline workbench rendered", {
   encodingParameterCount: encodingParameters.length,
   decodingParameterCount: decodingParameters.length,

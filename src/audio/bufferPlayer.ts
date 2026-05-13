@@ -9,7 +9,9 @@ export interface PlaybackStatus {
 export interface PlaybackStartInfo {
   backend: "web-audio";
   audioContextState: AudioContextState;
+  audioContextStateBeforeResume: AudioContextState;
   outputLatencySeconds: number;
+  baseLatencySeconds: number;
 }
 
 export interface AudioBufferPlayer {
@@ -32,7 +34,10 @@ export function createAudioBufferPlayer(): AudioBufferPlayer {
   let statusCallback: ((status: PlaybackStatus) => void) | null = null;
 
   function getAudioContext(): AudioContext {
-    audioContext = audioContext ?? new AudioContext();
+    if (!audioContext || audioContext.state === "closed") {
+      audioContext = new AudioContext({ latencyHint: "interactive" });
+    }
+
     return audioContext;
   }
 
@@ -44,7 +49,11 @@ export function createAudioBufferPlayer(): AudioBufferPlayer {
 
     if (source) {
       source.onended = null;
-      source.stop();
+      try {
+        source.stop();
+      } catch {
+        // A source can already be stopped by its natural onended path.
+      }
       source.disconnect();
       source = null;
     }
@@ -71,7 +80,9 @@ export function createAudioBufferPlayer(): AudioBufferPlayer {
       stop();
 
       const context = getAudioContext();
-      await context.resume();
+      const audioContextStateBeforeResume = context.state;
+      await ensureContextRunning(context);
+      primeOutputPath(context);
 
       const nextSource = context.createBufferSource();
       const nextGain = context.createGain();
@@ -95,8 +106,8 @@ export function createAudioBufferPlayer(): AudioBufferPlayer {
       gain = nextGain;
       activeAudio = audio;
       statusCallback = onStatus;
-      startedAtSeconds = context.currentTime;
-      nextSource.start();
+      startedAtSeconds = context.currentTime + 0.04;
+      nextSource.start(startedAtSeconds);
 
       onStatus({
         elapsedSeconds: 0,
@@ -122,7 +133,9 @@ export function createAudioBufferPlayer(): AudioBufferPlayer {
       return {
         backend: "web-audio",
         audioContextState: context.state,
+        audioContextStateBeforeResume,
         outputLatencySeconds: context.outputLatency,
+        baseLatencySeconds: context.baseLatency,
       };
     },
     stop,
@@ -131,7 +144,8 @@ export function createAudioBufferPlayer(): AudioBufferPlayer {
     },
     async playTestBeep() {
       const context = getAudioContext();
-      await context.resume();
+      const audioContextStateBeforeResume = context.state;
+      await ensureContextRunning(context);
 
       const oscillator = context.createOscillator();
       const beepGain = context.createGain();
@@ -156,7 +170,9 @@ export function createAudioBufferPlayer(): AudioBufferPlayer {
       return {
         backend: "web-audio",
         audioContextState: context.state,
+        audioContextStateBeforeResume,
         outputLatencySeconds: context.outputLatency,
+        baseLatencySeconds: context.baseLatency,
       };
     },
   };
@@ -167,6 +183,38 @@ export function createAudioBufferPlayer(): AudioBufferPlayer {
       progressTimer = null;
     }
   }
+}
+
+async function ensureContextRunning(context: AudioContext): Promise<void> {
+  if (context.state === "running") {
+    return;
+  }
+
+  await context.resume();
+  const stateAfterResume = String(context.state) as AudioContextState;
+
+  if (stateAfterResume !== "running") {
+    throw new Error(`AudioContext did not enter running state: ${stateAfterResume}`);
+  }
+}
+
+function primeOutputPath(context: AudioContext): void {
+  const oscillator = context.createOscillator();
+  const warmupGain = context.createGain();
+  const now = context.currentTime;
+
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(440, now);
+  warmupGain.gain.setValueAtTime(0.0001, now);
+  warmupGain.gain.linearRampToValueAtTime(0, now + 0.03);
+  oscillator.connect(warmupGain);
+  warmupGain.connect(context.destination);
+  oscillator.start(now);
+  oscillator.stop(now + 0.035);
+  oscillator.addEventListener("ended", () => {
+    oscillator.disconnect();
+    warmupGain.disconnect();
+  });
 }
 
 function cloneAudioBuffer(audioContext: BaseAudioContext, buffer: AudioBuffer): AudioBuffer {

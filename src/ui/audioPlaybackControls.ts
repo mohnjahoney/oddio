@@ -46,16 +46,18 @@ export function bindAudioPlaybackControls(
         elements.stopButton.disabled = !status.isPlaying;
       })
       .then((startInfo) => {
-        elements.debugStatus.textContent = `Playing ${requestedAudio.label}. Output: ${startInfo.backend}, state ${startInfo.audioContextState}, latency ${formatSeconds(
+        elements.debugStatus.textContent = `Playing ${requestedAudio.label}. Output: ${startInfo.backend}, state ${startInfo.audioContextState} from ${startInfo.audioContextStateBeforeResume}, latency ${formatSeconds(
           startInfo.outputLatencySeconds,
-        )}.`;
+        )}, base ${formatSeconds(startInfo.baseLatencySeconds)}.`;
         logger.info("Started current audio playback", {
           sourceType: requestedAudio.sourceType,
           durationSeconds: requestedAudio.durationSeconds,
           sampleRate: requestedAudio.sampleRate,
           playbackBackend: startInfo.backend,
           audioContextState: startInfo.audioContextState,
+          audioContextStateBeforeResume: startInfo.audioContextStateBeforeResume,
           outputLatencySeconds: startInfo.outputLatencySeconds,
+          baseLatencySeconds: startInfo.baseLatencySeconds,
         });
       })
       .catch((error: unknown) => {
@@ -82,9 +84,9 @@ export function bindAudioPlaybackControls(
     void player
       .playTestBeep()
       .then((startInfo) => {
-        elements.debugStatus.textContent = `Test beep fired. Output: ${startInfo.backend}, state ${startInfo.audioContextState}, latency ${formatSeconds(
+        elements.debugStatus.textContent = `Test beep fired. Output: ${startInfo.backend}, state ${startInfo.audioContextState} from ${startInfo.audioContextStateBeforeResume}, latency ${formatSeconds(
           startInfo.outputLatencySeconds,
-        )}.`;
+        )}, base ${formatSeconds(startInfo.baseLatencySeconds)}.`;
       })
       .catch((error: unknown) => {
         elements.debugStatus.textContent =

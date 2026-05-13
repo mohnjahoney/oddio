@@ -1,9 +1,12 @@
 import type { CurrentAudioBuffer, CurrentAudioStore } from "../audio";
 import {
+  AUDIO_ANALYSIS_PACKAGES,
   DEFAULT_SPECTRAL_DENSITY_CONFIG,
+  analyzeProtocolNotes,
   computeSpectralDensity,
-  detectProtocolNotes,
   DEFAULT_NOTE_DETECTION_CONFIG,
+  type AudioAnalysisPackage,
+  type AudioAnalysisPackageStore,
   type DetectedNoteRegion,
   type SpectralDensity,
   type SpectralDensityConfig,
@@ -22,6 +25,7 @@ interface AudioWorkspaceElements {
   frequencyBinInput: HTMLInputElement;
   timeSliceSlider: HTMLInputElement;
   timeSliceInput: HTMLInputElement;
+  analysisPackageSelect: HTMLSelectElement;
   waveformDisplay: HTMLElement;
   decodeButton: HTMLButtonElement;
   exportButton: HTMLButtonElement;
@@ -31,11 +35,14 @@ interface AudioWorkspaceElements {
 export function bindAudioWorkspaceView(
   root: HTMLElement,
   currentAudioStore: CurrentAudioStore,
+  audioAnalysisPackageStore: AudioAnalysisPackageStore,
 ): void {
   const elements = getAudioWorkspaceElements(root);
   let currentAudio: CurrentAudioBuffer | null = null;
+  let audioAnalysisPackage = audioAnalysisPackageStore.get();
   const spectralConfig = { ...DEFAULT_SPECTRAL_DENSITY_CONFIG };
   renderPitchGuides(elements.pitchGuideLayer, spectralConfig);
+  elements.analysisPackageSelect.value = audioAnalysisPackage;
 
   bindAnalysisControlPair({
     slider: elements.frequencyBinSlider,
@@ -57,9 +64,21 @@ export function bindAudioWorkspaceView(
     },
   });
 
+  elements.analysisPackageSelect.addEventListener("change", () => {
+    const nextPackage = readAudioAnalysisPackage(elements.analysisPackageSelect.value);
+    elements.analysisPackageSelect.value = nextPackage;
+    audioAnalysisPackageStore.set(nextPackage);
+  });
+
   currentAudioStore.subscribe((audio) => {
     currentAudio = audio;
-    renderCurrentAudioState(elements, audio, spectralConfig);
+    renderCurrentAudioState(elements, audio, spectralConfig, audioAnalysisPackage);
+  });
+
+  audioAnalysisPackageStore.subscribe((packageName) => {
+    audioAnalysisPackage = packageName;
+    elements.analysisPackageSelect.value = packageName;
+    renderCurrentAudioState(elements, currentAudio, spectralConfig, audioAnalysisPackage);
   });
 }
 
@@ -76,6 +95,7 @@ function getAudioWorkspaceElements(root: HTMLElement): AudioWorkspaceElements {
     frequencyBinInput: getElement(root, "#frequency-bin-input", HTMLInputElement),
     timeSliceSlider: getElement(root, "#time-slice-slider", HTMLInputElement),
     timeSliceInput: getElement(root, "#time-slice-input", HTMLInputElement),
+    analysisPackageSelect: getElement(root, "#analysis-package-select", HTMLSelectElement),
     waveformDisplay: getElement(root, "#waveform-display", HTMLElement),
     decodeButton: getElement(root, "#decode-button", HTMLButtonElement),
     exportButton: getElement(root, "#export-button", HTMLButtonElement),
@@ -87,6 +107,7 @@ function renderCurrentAudioState(
   elements: AudioWorkspaceElements,
   currentAudio: CurrentAudioBuffer | null,
   spectralConfig: SpectralDensityConfig,
+  audioAnalysisPackage: AudioAnalysisPackage,
 ): void {
   if (!currentAudio) {
     elements.bufferState.classList.remove("active-buffer-state");
@@ -114,7 +135,7 @@ function renderCurrentAudioState(
   elements.decodeButton.disabled = false;
   elements.exportButton.disabled = false;
   renderCurrentSpectrogram(elements, currentAudio, spectralConfig);
-  renderDetectedNotes(elements, currentAudio, spectralConfig);
+  renderDetectedNotes(elements, currentAudio, spectralConfig, audioAnalysisPackage);
   renderWaveformPreview(elements.waveformDisplay, currentAudio.buffer);
 }
 
@@ -151,8 +172,9 @@ function renderDetectedNotes(
   elements: AudioWorkspaceElements,
   currentAudio: CurrentAudioBuffer,
   spectralConfig: SpectralDensityConfig,
+  audioAnalysisPackage: AudioAnalysisPackage,
 ): void {
-  const regions = detectProtocolNotes(currentAudio.buffer);
+  const regions = analyzeProtocolNotes(currentAudio.buffer, audioAnalysisPackage);
   elements.noteRegionLayer.innerHTML = regions
     .map((region) =>
       renderDetectedNoteRegion(region, currentAudio.durationSeconds, spectralConfig),
@@ -162,6 +184,10 @@ function renderDetectedNotes(
     regions.length === 0
       ? "--"
       : regions.map((region) => `${region.symbol}:${region.tone.note}`).join("  ");
+}
+
+function readAudioAnalysisPackage(value: string): AudioAnalysisPackage {
+  return AUDIO_ANALYSIS_PACKAGES.find((packageName) => packageName === value) ?? "HomeMade";
 }
 
 function renderDetectedNoteRegion(

@@ -1,3 +1,4 @@
+export * from "./audioAnalysisPackage";
 export * from "./noteDetection";
 export * from "./spectralDensity";
 

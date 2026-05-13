@@ -528,6 +528,18 @@ h2 {
   accent-color: var(--accent-strong);
 }
 
+.analysis-controls select {
+  grid-column: 2 / 4;
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #070b10;
+  color: #edf8f3;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
 .analysis-controls input[type="number"] {
   width: 100%;
   min-height: 30px;

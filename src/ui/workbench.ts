@@ -119,6 +119,13 @@ export function renderWorkbench(root: HTMLElement, model: WorkbenchModel): void 
 
           <div class="analysis-controls" aria-label="Spectrogram analysis controls">
             <label>
+              <span>analysis</span>
+              <select id="analysis-package-select">
+                <option value="HomeMade">HomeMade</option>
+                <option value="Pitchy">Pitchy</option>
+              </select>
+            </label>
+            <label>
               <span>f bins</span>
               <input
                 id="frequency-bin-slider"
