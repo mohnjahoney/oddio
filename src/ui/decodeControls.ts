@@ -2,6 +2,7 @@ import {
   DEFAULT_NOTE_DETECTION_CONFIG,
   analyzeProtocolNotes,
   type AudioAnalysisPackageStore,
+  type DecodeStrategyStore,
   type DetectedNoteRegion,
 } from "../analysis";
 import type { CurrentAudioStore } from "../audio";
@@ -24,6 +25,7 @@ export function bindDecodeControls(
   logger: Logger,
   currentAudioStore: CurrentAudioStore,
   audioAnalysisPackageStore: AudioAnalysisPackageStore,
+  decodeStrategyStore: DecodeStrategyStore,
 ): void {
   const elements = getDecodeElements(root);
 
@@ -54,6 +56,7 @@ export function bindDecodeControls(
 
     try {
       const audioAnalysisPackage = audioAnalysisPackageStore.get();
+      const decodeStrategy = decodeStrategyStore.get();
       const regions = analyzeProtocolNotes(currentAudio.buffer, audioAnalysisPackage);
       const hexStream = regions.map((region) => region.symbol);
       const hexText = hexStream.join("");
@@ -66,10 +69,11 @@ export function bindDecodeControls(
         regions,
         hexStream.length / 2,
       );
-      elements.debugStatus.textContent = `Decoded ${currentAudio.label} with ${audioAnalysisPackage} into ${JSON.stringify(decodedText)}. ${formatConfidenceSummary(regions)}.`;
+      elements.debugStatus.textContent = `Decoded ${currentAudio.label} with ${audioAnalysisPackage} / ${decodeStrategy} into ${JSON.stringify(decodedText)}. ${formatConfidenceSummary(regions)}.`;
       activateDecodeTab(elements, "text");
       logger.info("Decoded current audio buffer", {
         audioAnalysisPackage,
+        decodeStrategy,
         sourceType: currentAudio.sourceType,
         symbolCount: hexStream.length,
         byteCount: hexStream.length / 2,

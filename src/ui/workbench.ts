@@ -126,6 +126,13 @@ export function renderWorkbench(root: HTMLElement, model: WorkbenchModel): void 
               </select>
             </label>
             <label>
+              <span>strategy</span>
+              <select id="decode-strategy-select">
+                <option value="FixedGrid">Fixed Grid</option>
+                <option value="ThresholdAndChange">Threshold + Change</option>
+              </select>
+            </label>
+            <label>
               <span>f bins</span>
               <input
                 id="frequency-bin-slider"

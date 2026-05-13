@@ -1,12 +1,15 @@
 import type { CurrentAudioBuffer, CurrentAudioStore } from "../audio";
 import {
   AUDIO_ANALYSIS_PACKAGES,
+  DECODE_STRATEGIES,
   DEFAULT_SPECTRAL_DENSITY_CONFIG,
   analyzeProtocolNotes,
   computeSpectralDensity,
   DEFAULT_NOTE_DETECTION_CONFIG,
   type AudioAnalysisPackage,
   type AudioAnalysisPackageStore,
+  type DecodeStrategy,
+  type DecodeStrategyStore,
   type DetectedNoteRegion,
   type SpectralDensity,
   type SpectralDensityConfig,
@@ -26,6 +29,7 @@ interface AudioWorkspaceElements {
   timeSliceSlider: HTMLInputElement;
   timeSliceInput: HTMLInputElement;
   analysisPackageSelect: HTMLSelectElement;
+  decodeStrategySelect: HTMLSelectElement;
   waveformDisplay: HTMLElement;
   decodeButton: HTMLButtonElement;
   exportButton: HTMLButtonElement;
@@ -36,13 +40,16 @@ export function bindAudioWorkspaceView(
   root: HTMLElement,
   currentAudioStore: CurrentAudioStore,
   audioAnalysisPackageStore: AudioAnalysisPackageStore,
+  decodeStrategyStore: DecodeStrategyStore,
 ): void {
   const elements = getAudioWorkspaceElements(root);
   let currentAudio: CurrentAudioBuffer | null = null;
   let audioAnalysisPackage = audioAnalysisPackageStore.get();
+  let decodeStrategy = decodeStrategyStore.get();
   const spectralConfig = { ...DEFAULT_SPECTRAL_DENSITY_CONFIG };
   renderPitchGuides(elements.pitchGuideLayer, spectralConfig);
   elements.analysisPackageSelect.value = audioAnalysisPackage;
+  elements.decodeStrategySelect.value = decodeStrategy;
 
   bindAnalysisControlPair({
     slider: elements.frequencyBinSlider,
@@ -70,15 +77,45 @@ export function bindAudioWorkspaceView(
     audioAnalysisPackageStore.set(nextPackage);
   });
 
+  elements.decodeStrategySelect.addEventListener("change", () => {
+    const nextStrategy = readDecodeStrategy(elements.decodeStrategySelect.value);
+    elements.decodeStrategySelect.value = nextStrategy;
+    decodeStrategyStore.set(nextStrategy);
+  });
+
   currentAudioStore.subscribe((audio) => {
     currentAudio = audio;
-    renderCurrentAudioState(elements, audio, spectralConfig, audioAnalysisPackage);
+    renderCurrentAudioState(
+      elements,
+      audio,
+      spectralConfig,
+      audioAnalysisPackage,
+      decodeStrategy,
+    );
   });
 
   audioAnalysisPackageStore.subscribe((packageName) => {
     audioAnalysisPackage = packageName;
     elements.analysisPackageSelect.value = packageName;
-    renderCurrentAudioState(elements, currentAudio, spectralConfig, audioAnalysisPackage);
+    renderCurrentAudioState(
+      elements,
+      currentAudio,
+      spectralConfig,
+      audioAnalysisPackage,
+      decodeStrategy,
+    );
+  });
+
+  decodeStrategyStore.subscribe((strategy) => {
+    decodeStrategy = strategy;
+    elements.decodeStrategySelect.value = strategy;
+    renderCurrentAudioState(
+      elements,
+      currentAudio,
+      spectralConfig,
+      audioAnalysisPackage,
+      decodeStrategy,
+    );
   });
 }
 
@@ -96,6 +133,7 @@ function getAudioWorkspaceElements(root: HTMLElement): AudioWorkspaceElements {
     timeSliceSlider: getElement(root, "#time-slice-slider", HTMLInputElement),
     timeSliceInput: getElement(root, "#time-slice-input", HTMLInputElement),
     analysisPackageSelect: getElement(root, "#analysis-package-select", HTMLSelectElement),
+    decodeStrategySelect: getElement(root, "#decode-strategy-select", HTMLSelectElement),
     waveformDisplay: getElement(root, "#waveform-display", HTMLElement),
     decodeButton: getElement(root, "#decode-button", HTMLButtonElement),
     exportButton: getElement(root, "#export-button", HTMLButtonElement),
@@ -108,6 +146,7 @@ function renderCurrentAudioState(
   currentAudio: CurrentAudioBuffer | null,
   spectralConfig: SpectralDensityConfig,
   audioAnalysisPackage: AudioAnalysisPackage,
+  decodeStrategy: DecodeStrategy,
 ): void {
   if (!currentAudio) {
     elements.bufferState.classList.remove("active-buffer-state");
@@ -135,7 +174,13 @@ function renderCurrentAudioState(
   elements.decodeButton.disabled = false;
   elements.exportButton.disabled = false;
   renderCurrentSpectrogram(elements, currentAudio, spectralConfig);
-  renderDetectedNotes(elements, currentAudio, spectralConfig, audioAnalysisPackage);
+  renderDetectedNotes(
+    elements,
+    currentAudio,
+    spectralConfig,
+    audioAnalysisPackage,
+    decodeStrategy,
+  );
   renderWaveformPreview(elements.waveformDisplay, currentAudio.buffer);
 }
 
@@ -173,7 +218,9 @@ function renderDetectedNotes(
   currentAudio: CurrentAudioBuffer,
   spectralConfig: SpectralDensityConfig,
   audioAnalysisPackage: AudioAnalysisPackage,
+  decodeStrategy: DecodeStrategy,
 ): void {
+  void decodeStrategy;
   const regions = analyzeProtocolNotes(currentAudio.buffer, audioAnalysisPackage);
   elements.noteRegionLayer.innerHTML = regions
     .map((region) =>
@@ -188,6 +235,10 @@ function renderDetectedNotes(
 
 function readAudioAnalysisPackage(value: string): AudioAnalysisPackage {
   return AUDIO_ANALYSIS_PACKAGES.find((packageName) => packageName === value) ?? "HomeMade";
+}
+
+function readDecodeStrategy(value: string): DecodeStrategy {
+  return DECODE_STRATEGIES.find((strategy) => strategy === value) ?? "FixedGrid";
 }
 
 function renderDetectedNoteRegion(

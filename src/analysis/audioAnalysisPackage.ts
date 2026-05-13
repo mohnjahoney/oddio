@@ -1,10 +1,10 @@
-import { lookupTone, type HexSymbol } from "../protocol";
 import {
   DEFAULT_NOTE_DETECTION_CONFIG,
   detectProtocolNotes,
   type DetectedNoteRegion,
   type NoteDetectionConfig,
 } from "./noteDetection";
+import { detectProtocolNotesWithPitchy } from "./pitchyNoteDetection";
 
 export type AudioAnalysisPackage = "HomeMade" | "Pitchy";
 
@@ -56,33 +56,8 @@ export function analyzeProtocolNotes(
   config: NoteDetectionConfig = DEFAULT_NOTE_DETECTION_CONFIG,
 ): DetectedNoteRegion[] {
   if (packageName === "Pitchy") {
-    return detectPitchyPlaceholderNotes(buffer, config);
+    return detectProtocolNotesWithPitchy(buffer, config);
   }
 
   return detectProtocolNotes(buffer, config);
-}
-
-function detectPitchyPlaceholderNotes(
-  buffer: AudioBuffer,
-  config: NoteDetectionConfig,
-): DetectedNoteRegion[] {
-  const defaultSymbol: HexSymbol = "0";
-  const defaultTone = lookupTone(defaultSymbol);
-  const symbolDurationSeconds = (config.toneDurationMs + config.gapDurationMs) / 1_000;
-  const toneDurationSeconds = config.toneDurationMs / 1_000;
-  const symbolCount = Math.floor(
-    (buffer.duration + config.gapDurationMs / 1_000) / symbolDurationSeconds,
-  );
-
-  return Array.from({ length: symbolCount }, (_, symbolIndex) => {
-    const startSeconds = symbolIndex * symbolDurationSeconds;
-
-    return {
-      symbol: defaultSymbol,
-      tone: defaultTone,
-      confidence: 0.5,
-      startSeconds,
-      endSeconds: startSeconds + toneDurationSeconds,
-    };
-  });
 }
