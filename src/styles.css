@@ -280,7 +280,8 @@ h2 {
   border-top: 1px solid var(--line);
 }
 
-.source-panel-stack {
+.source-panel-stack,
+.decode-panel-stack {
   display: grid;
   margin-top: 0;
 }
@@ -304,7 +305,8 @@ h2 {
   margin-bottom: 8px;
 }
 
-.source-panel-stack textarea[readonly] {
+.source-panel-stack textarea[readonly],
+.decode-panel-stack textarea[readonly] {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 0.84rem;
 }
@@ -394,28 +396,36 @@ h2 {
   pointer-events: none;
 }
 
-.pitch-guide {
+.pitch-guide-layer,
+.note-region-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pitch-guide-layer {
+  z-index: 1;
+}
+
+.note-region-layer {
+  z-index: 2;
+}
+
+.protocol-pitch-guide {
   position: absolute;
   left: 0;
   right: 0;
-  z-index: 1;
-  border-top: 1px solid rgba(157, 245, 111, 0.38);
-  padding: 4px 8px 0;
-  color: #c9f7d6;
+  border-top: 1px solid rgba(157, 245, 111, 0.2);
+}
+
+.protocol-pitch-guide span {
+  display: inline-block;
+  margin-top: -1px;
+  padding: 1px 4px;
+  background: rgba(7, 11, 16, 0.62);
+  color: rgba(201, 247, 214, 0.74);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 0.72rem;
-}
-
-.pitch-c5 {
-  top: 18%;
-}
-
-.pitch-c4 {
-  top: 50%;
-}
-
-.pitch-c3 {
-  top: 82%;
+  font-size: 0.62rem;
 }
 
 .empty-audio-state {
@@ -427,6 +437,43 @@ h2 {
   gap: 6px;
   color: #d9e8e2;
   text-align: center;
+}
+
+.detected-note-region {
+  position: absolute;
+  min-width: 34px;
+  transform: translateY(-50%);
+  border: 1px solid rgba(242, 184, 75, 0.82);
+  border-radius: 4px;
+  padding: 2px 4px;
+  background: rgba(7, 11, 16, 0.74);
+  color: #ffe3a4;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.62rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.detected-note-region span,
+.detected-note-region small {
+  display: block;
+}
+
+.detected-note-region small {
+  color: rgba(255, 227, 164, 0.72);
+  font-size: 0.56rem;
+}
+
+.low-confidence-region {
+  border-color: rgba(255, 103, 103, 0.9);
+  color: #ffd6d6;
+}
+
+.low-confidence-region small {
+  color: rgba(255, 214, 214, 0.78);
 }
 
 .empty-audio-state span {

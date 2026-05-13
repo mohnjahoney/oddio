@@ -6,6 +6,7 @@ import { bindAudioFileControls } from "./ui/audioFileControls";
 import { bindAudioPlaybackControls } from "./ui/audioPlaybackControls";
 import { bindAudioRecordingControls } from "./ui/audioRecordingControls";
 import { bindAudioWorkspaceView } from "./ui/audioWorkspaceView";
+import { bindDecodeControls } from "./ui/decodeControls";
 import { bindEncoderControls } from "./ui/encoderControls";
 import { renderWorkbench } from "./ui/workbench";
 
@@ -44,6 +45,7 @@ bindEncoderControls(app, logger, currentAudioStore);
 bindAudioPlaybackControls(app, logger, currentAudioStore);
 bindAudioFileControls(app, logger, currentAudioStore);
 bindAudioRecordingControls(app, logger, currentAudioStore);
+bindDecodeControls(app, logger, currentAudioStore);
 logger.info("ODDiO pipeline workbench rendered", {
   encodingParameterCount: encodingParameters.length,
   decodingParameterCount: decodingParameters.length,

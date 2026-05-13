@@ -1,4 +1,5 @@
 export * from "./notes";
+export * from "./textDecoding";
 export * from "./symbols";
 export * from "./textEncoding";
 

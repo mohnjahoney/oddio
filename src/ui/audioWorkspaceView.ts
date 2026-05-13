@@ -2,9 +2,13 @@ import type { CurrentAudioBuffer, CurrentAudioStore } from "../audio";
 import {
   DEFAULT_SPECTRAL_DENSITY_CONFIG,
   computeSpectralDensity,
+  detectProtocolNotes,
+  DEFAULT_NOTE_DETECTION_CONFIG,
+  type DetectedNoteRegion,
   type SpectralDensity,
   type SpectralDensityConfig,
 } from "../analysis";
+import { HEX_SYMBOLS, lookupTone } from "../protocol";
 
 interface AudioWorkspaceElements {
   bufferState: HTMLElement;
@@ -12,6 +16,8 @@ interface AudioWorkspaceElements {
   bufferStateLabel: HTMLElement;
   emptyAudioState: HTMLElement;
   spectrogramCanvas: HTMLCanvasElement;
+  pitchGuideLayer: HTMLElement;
+  noteRegionLayer: HTMLElement;
   frequencyBinSlider: HTMLInputElement;
   frequencyBinInput: HTMLInputElement;
   timeSliceSlider: HTMLInputElement;
@@ -19,6 +25,7 @@ interface AudioWorkspaceElements {
   waveformDisplay: HTMLElement;
   decodeButton: HTMLButtonElement;
   exportButton: HTMLButtonElement;
+  detectedNotesOutput: HTMLElement;
 }
 
 export function bindAudioWorkspaceView(
@@ -28,6 +35,7 @@ export function bindAudioWorkspaceView(
   const elements = getAudioWorkspaceElements(root);
   let currentAudio: CurrentAudioBuffer | null = null;
   const spectralConfig = { ...DEFAULT_SPECTRAL_DENSITY_CONFIG };
+  renderPitchGuides(elements.pitchGuideLayer, spectralConfig);
 
   bindAnalysisControlPair({
     slider: elements.frequencyBinSlider,
@@ -62,6 +70,8 @@ function getAudioWorkspaceElements(root: HTMLElement): AudioWorkspaceElements {
     bufferStateLabel: getElement(root, "#buffer-state-label", HTMLElement),
     emptyAudioState: getElement(root, "#empty-audio-state", HTMLElement),
     spectrogramCanvas: getElement(root, "#spectrogram-canvas", HTMLCanvasElement),
+    pitchGuideLayer: getElement(root, "#pitch-guide-layer", HTMLElement),
+    noteRegionLayer: getElement(root, "#note-region-layer", HTMLElement),
     frequencyBinSlider: getElement(root, "#frequency-bin-slider", HTMLInputElement),
     frequencyBinInput: getElement(root, "#frequency-bin-input", HTMLInputElement),
     timeSliceSlider: getElement(root, "#time-slice-slider", HTMLInputElement),
@@ -69,6 +79,7 @@ function getAudioWorkspaceElements(root: HTMLElement): AudioWorkspaceElements {
     waveformDisplay: getElement(root, "#waveform-display", HTMLElement),
     decodeButton: getElement(root, "#decode-button", HTMLButtonElement),
     exportButton: getElement(root, "#export-button", HTMLButtonElement),
+    detectedNotesOutput: getElement(root, "#detected-notes-output", HTMLElement),
   };
 }
 
@@ -85,6 +96,8 @@ function renderCurrentAudioState(
     elements.waveformDisplay.setAttribute("aria-label", "Waveform empty state");
     elements.decodeButton.disabled = true;
     elements.exportButton.disabled = true;
+    elements.noteRegionLayer.innerHTML = "";
+    elements.detectedNotesOutput.textContent = "--";
     clearSpectrogram(elements.spectrogramCanvas);
     renderEmptyWaveformPreview(elements.waveformDisplay);
     return;
@@ -101,6 +114,7 @@ function renderCurrentAudioState(
   elements.decodeButton.disabled = false;
   elements.exportButton.disabled = false;
   renderCurrentSpectrogram(elements, currentAudio, spectralConfig);
+  renderDetectedNotes(elements, currentAudio, spectralConfig);
   renderWaveformPreview(elements.waveformDisplay, currentAudio.buffer);
 }
 
@@ -118,6 +132,65 @@ function renderCurrentSpectrogram(
     elements.spectrogramCanvas,
     computeSpectralDensity(currentAudio.buffer, spectralConfig),
   );
+}
+
+function renderPitchGuides(
+  container: HTMLElement,
+  spectralConfig: SpectralDensityConfig,
+): void {
+  container.innerHTML = HEX_SYMBOLS.map((symbol) => {
+    const tone = lookupTone(symbol);
+    const y = frequencyToTopPercent(tone.frequencyHz, spectralConfig);
+    return `<div class="protocol-pitch-guide" style="top: ${y}%">
+      <span>${symbol}:${tone.note}</span>
+    </div>`;
+  }).join("");
+}
+
+function renderDetectedNotes(
+  elements: AudioWorkspaceElements,
+  currentAudio: CurrentAudioBuffer,
+  spectralConfig: SpectralDensityConfig,
+): void {
+  const regions = detectProtocolNotes(currentAudio.buffer);
+  elements.noteRegionLayer.innerHTML = regions
+    .map((region) =>
+      renderDetectedNoteRegion(region, currentAudio.durationSeconds, spectralConfig),
+    )
+    .join("");
+  elements.detectedNotesOutput.textContent =
+    regions.length === 0
+      ? "--"
+      : regions.map((region) => `${region.symbol}:${region.tone.note}`).join("  ");
+}
+
+function renderDetectedNoteRegion(
+  region: DetectedNoteRegion,
+  durationSeconds: number,
+  spectralConfig: SpectralDensityConfig,
+): string {
+  const left = (region.startSeconds / durationSeconds) * 100;
+  const width = ((region.endSeconds - region.startSeconds) / durationSeconds) * 100;
+  const top = frequencyToTopPercent(region.tone.frequencyHz, spectralConfig);
+
+  return `<div
+    class="detected-note-region ${region.confidence < DEFAULT_NOTE_DETECTION_CONFIG.lowConfidenceThreshold ? "low-confidence-region" : ""}"
+    style="left: ${left}%; width: ${width}%; top: ${top}%"
+    title="${region.symbol}:${region.tone.note} confidence ${Math.round(region.confidence * 100)}%"
+  >
+    <span>${region.symbol}:${region.tone.note}</span>
+    <small>${Math.round(region.confidence * 100)}%</small>
+  </div>`;
+}
+
+function frequencyToTopPercent(
+  frequencyHz: number,
+  spectralConfig: SpectralDensityConfig,
+): number {
+  const ratio =
+    (frequencyHz - spectralConfig.minFrequencyHz) /
+    (spectralConfig.maxFrequencyHz - spectralConfig.minFrequencyHz);
+  return Math.max(0, Math.min(100, 100 - ratio * 100));
 }
 
 function bindAnalysisControlPair(options: {

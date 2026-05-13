@@ -76,7 +76,7 @@ export function renderWorkbench(root: HTMLElement, model: WorkbenchModel): void 
               ></textarea>
             </div>
           </div>
-          <button type="button" class="primary-action" id="encode-button">ODDiO IT</button>
+          <button type="button" class="primary-action" id="encode-button">ODDiO</button>
 
           <div class="parameter-group" aria-label="Encoding parameters">
             <div class="group-heading">
@@ -107,9 +107,8 @@ export function renderWorkbench(root: HTMLElement, model: WorkbenchModel): void 
             <div class="axis-label y-axis">Frequency</div>
             <div class="spectrogram-display" aria-label="Spectrogram empty state">
               <canvas id="spectrogram-canvas" class="spectrogram-canvas"></canvas>
-              <div class="pitch-guide pitch-c5">C5</div>
-              <div class="pitch-guide pitch-c4">C4</div>
-              <div class="pitch-guide pitch-c3">C3</div>
+              <div id="pitch-guide-layer" class="pitch-guide-layer" aria-hidden="true"></div>
+              <div id="note-region-layer" class="note-region-layer" aria-hidden="true"></div>
               <div class="empty-audio-state" id="empty-audio-state">
                 <span>Drop audio here</span>
                 <strong>or generate it from text</strong>
@@ -206,20 +205,45 @@ export function renderWorkbench(root: HTMLElement, model: WorkbenchModel): void 
             <h2>Recovered</h2>
           </div>
           <div class="tab-row" role="tablist" aria-label="Decoded format">
-            <button type="button" class="tab-button active-tab" role="tab" aria-selected="true">
+            <button
+              type="button"
+              class="tab-button active-tab"
+              role="tab"
+              aria-selected="true"
+              data-decode-tab="text"
+            >
               Text
             </button>
-            <button type="button" class="tab-button" role="tab" aria-selected="false">
+            <button
+              type="button"
+              class="tab-button"
+              role="tab"
+              aria-selected="false"
+              data-decode-tab="hex"
+            >
               Hex
             </button>
           </div>
-          <label class="input-label" for="decoded-output">Decoded</label>
-          <textarea
-            id="decoded-output"
-            rows="8"
-            placeholder="Decoded text will appear here..."
-            readonly
-          ></textarea>
+          <div class="decode-panel-stack">
+            <div data-decode-panel="text">
+              <label class="input-label" for="decoded-output">Decoded</label>
+              <textarea
+                id="decoded-output"
+                rows="8"
+                placeholder="Decoded text will appear here..."
+                readonly
+              ></textarea>
+            </div>
+            <div data-decode-panel="hex" hidden>
+              <label class="input-label" for="decoded-hex-output">Decoded Hex</label>
+              <textarea
+                id="decoded-hex-output"
+                rows="8"
+                placeholder="Decoded hex will appear here..."
+                readonly
+              ></textarea>
+            </div>
+          </div>
           <button type="button" class="primary-action reverse-action" id="decode-button" disabled>
             <span aria-hidden="true">ODDiO</span>
             <span class="visually-hidden">Reverse ODDiO</span>
@@ -234,9 +258,9 @@ export function renderWorkbench(root: HTMLElement, model: WorkbenchModel): void 
 
           <output class="summary-readout" aria-label="Decode summary">
             <span>Notes</span>
-            <strong>--</strong>
+            <strong id="detected-notes-output">--</strong>
             <span>Status</span>
-            <strong>Idle</strong>
+            <strong id="decode-status-output">Idle</strong>
           </output>
         </aside>
       </section>
