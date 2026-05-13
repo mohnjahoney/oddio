@@ -107,6 +107,7 @@ export function renderWorkbench(root: HTMLElement, model: WorkbenchModel): void 
             <div class="axis-label y-axis">Frequency</div>
             <div class="spectrogram-display" aria-label="Spectrogram empty state">
               <canvas id="spectrogram-canvas" class="spectrogram-canvas"></canvas>
+              <canvas id="pitch-estimate-canvas" class="pitch-estimate-canvas"></canvas>
               <div id="pitch-guide-layer" class="pitch-guide-layer" aria-hidden="true"></div>
               <div id="note-region-layer" class="note-region-layer" aria-hidden="true"></div>
               <div class="empty-audio-state" id="empty-audio-state">
@@ -129,8 +130,16 @@ export function renderWorkbench(root: HTMLElement, model: WorkbenchModel): void 
               <span>strategy</span>
               <select id="decode-strategy-select">
                 <option value="FixedGrid">Fixed Grid</option>
-                <option value="ThresholdAndChange">Threshold + Change</option>
+                <option value="Threshold">Threshold</option>
               </select>
+            </label>
+            <label class="checkbox-control">
+              <span>overlay</span>
+              <input id="pitch-overlay-toggle" type="checkbox" checked />
+            </label>
+            <label class="checkbox-control">
+              <span>pitch line</span>
+              <input id="pitch-estimate-toggle" type="checkbox" />
             </label>
             <label>
               <span>f bins</span>
@@ -170,6 +179,49 @@ export function renderWorkbench(root: HTMLElement, model: WorkbenchModel): void 
                 value="120"
               />
             </label>
+            <div
+              class="strategy-parameter-panel"
+              id="threshold-parameter-panel"
+              aria-label="Threshold decode strategy parameters"
+              hidden
+            >
+              <div class="strategy-parameter-heading">
+                <span>Decode Strategy Parameters</span>
+              </div>
+              <label>
+                <span>volume</span>
+                <input
+                  id="threshold-volume-input"
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.005"
+                  value="0.02"
+                />
+              </label>
+              <label>
+                <span>clarity</span>
+                <input
+                  id="threshold-clarity-input"
+                  type="number"
+                  min="0.01"
+                  max="1"
+                  step="0.01"
+                  value="0.75"
+                />
+              </label>
+              <label>
+                <span>duration ms</span>
+                <input
+                  id="threshold-duration-input"
+                  type="number"
+                  min="20"
+                  max="1000"
+                  step="10"
+                  value="80"
+                />
+              </label>
+            </div>
           </div>
 
           <div class="waveform-display" id="waveform-display" aria-label="Waveform empty state">

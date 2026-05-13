@@ -4,6 +4,7 @@ import {
   type AudioAnalysisPackageStore,
   type DecodeStrategyStore,
   type DetectedNoteRegion,
+  type ThresholdNoteDetectionConfigStore,
 } from "../analysis";
 import type { CurrentAudioStore } from "../audio";
 import { hexStreamToText } from "../protocol";
@@ -26,6 +27,7 @@ export function bindDecodeControls(
   currentAudioStore: CurrentAudioStore,
   audioAnalysisPackageStore: AudioAnalysisPackageStore,
   decodeStrategyStore: DecodeStrategyStore,
+  thresholdConfigStore: ThresholdNoteDetectionConfigStore,
 ): void {
   const elements = getDecodeElements(root);
 
@@ -57,7 +59,14 @@ export function bindDecodeControls(
     try {
       const audioAnalysisPackage = audioAnalysisPackageStore.get();
       const decodeStrategy = decodeStrategyStore.get();
-      const regions = analyzeProtocolNotes(currentAudio.buffer, audioAnalysisPackage);
+      const thresholdConfig = thresholdConfigStore.get();
+      const regions = analyzeProtocolNotes(
+        currentAudio.buffer,
+        audioAnalysisPackage,
+        decodeStrategy,
+        undefined,
+        thresholdConfig,
+      );
       const hexStream = regions.map((region) => region.symbol);
       const hexText = hexStream.join("");
       elements.decodedHexOutput.value = hexText;

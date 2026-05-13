@@ -5,6 +5,12 @@ import {
   type NoteDetectionConfig,
 } from "./noteDetection";
 import { detectProtocolNotesWithPitchy } from "./pitchyNoteDetection";
+import {
+  DEFAULT_THRESHOLD_NOTE_DETECTION_CONFIG,
+  detectProtocolNotesWithThreshold,
+  type ThresholdNoteDetectionConfig,
+} from "./thresholdNoteDetection";
+import type { DecodeStrategy } from "./decodeStrategy";
 
 export type AudioAnalysisPackage = "HomeMade" | "Pitchy";
 
@@ -53,8 +59,14 @@ export function createAudioAnalysisPackageStore(
 export function analyzeProtocolNotes(
   buffer: AudioBuffer,
   packageName: AudioAnalysisPackage,
+  strategy: DecodeStrategy = "FixedGrid",
   config: NoteDetectionConfig = DEFAULT_NOTE_DETECTION_CONFIG,
+  thresholdConfig: ThresholdNoteDetectionConfig = DEFAULT_THRESHOLD_NOTE_DETECTION_CONFIG,
 ): DetectedNoteRegion[] {
+  if (strategy === "Threshold") {
+    return detectProtocolNotesWithThreshold(buffer, thresholdConfig);
+  }
+
   if (packageName === "Pitchy") {
     return detectProtocolNotesWithPitchy(buffer, config);
   }

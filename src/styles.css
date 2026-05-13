@@ -379,11 +379,17 @@ h2 {
     linear-gradient(180deg, #132029 0%, #0a1117 52%, #080b10 100%);
 }
 
-.spectrogram-canvas {
+.spectrogram-canvas,
+.pitch-estimate-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+.pitch-estimate-canvas {
+  z-index: 2;
+  pointer-events: none;
 }
 
 .spectrogram-display::after {
@@ -408,7 +414,7 @@ h2 {
 }
 
 .note-region-layer {
-  z-index: 2;
+  z-index: 3;
 }
 
 .protocol-pitch-guide {
@@ -515,6 +521,17 @@ h2 {
   background: #080c11;
 }
 
+.analysis-controls .checkbox-control {
+  grid-template-columns: minmax(96px, 0.75fr) auto;
+  justify-content: start;
+}
+
+.analysis-controls input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-strong);
+}
+
 .analysis-controls span {
   color: var(--muted);
   font-size: 0.76rem;
@@ -551,6 +568,26 @@ h2 {
   font-size: 0.84rem;
   font-weight: 700;
   text-align: right;
+}
+
+.strategy-parameter-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px;
+  background: #080c11;
+}
+
+.strategy-parameter-heading {
+  grid-column: 1 / -1;
+}
+
+.strategy-parameter-panel label {
+  border-color: rgba(38, 50, 61, 0.78);
+  background: #070b10;
 }
 
 .waveform-display {

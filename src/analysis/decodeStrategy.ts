@@ -1,4 +1,4 @@
-export type DecodeStrategy = "FixedGrid" | "ThresholdAndChange";
+export type DecodeStrategy = "FixedGrid" | "Threshold";
 
 export interface DecodeStrategyStore {
   get(): DecodeStrategy;
@@ -12,7 +12,7 @@ export const DEFAULT_DECODE_STRATEGY: DecodeStrategy = "FixedGrid";
 
 export const DECODE_STRATEGIES = [
   DEFAULT_DECODE_STRATEGY,
-  "ThresholdAndChange",
+  "Threshold",
 ] as const satisfies readonly DecodeStrategy[];
 
 export function createDecodeStrategyStore(
