@@ -1,5 +1,5 @@
-export * from "./audioAnalysisPackage";
-export * from "./decodeStrategy";
+export * from "./frequencyExtractionMethod";
+export * from "./symbolizationMethod";
 export * from "./noteDetection";
 export * from "./pitchEstimation";
 export * from "./pitchyNoteDetection";

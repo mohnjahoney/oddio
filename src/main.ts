@@ -1,6 +1,7 @@
 import {
-  createAudioAnalysisPackageStore,
-  createDecodeStrategyStore,
+  createFrequencyExtractionMethodStore,
+  createNoteDetectionConfigStore,
+  createSymbolizationMethodStore,
   createThresholdNoteDetectionConfigStore,
 } from "./analysis";
 import { createCurrentAudioStore } from "./audio";
@@ -17,8 +18,9 @@ import { renderWorkbench } from "./ui/workbench";
 
 const logger = createLogger("app");
 const currentAudioStore = createCurrentAudioStore();
-const audioAnalysisPackageStore = createAudioAnalysisPackageStore();
-const decodeStrategyStore = createDecodeStrategyStore();
+const frequencyExtractionMethodStore = createFrequencyExtractionMethodStore();
+const symbolizationMethodStore = createSymbolizationMethodStore();
+const noteDetectionConfigStore = createNoteDetectionConfigStore();
 const thresholdConfigStore = createThresholdNoteDetectionConfigStore();
 
 const status: SystemStatus = {
@@ -51,8 +53,9 @@ renderWorkbench(app, { status, encodingParameters, decodingParameters });
 bindAudioWorkspaceView(
   app,
   currentAudioStore,
-  audioAnalysisPackageStore,
-  decodeStrategyStore,
+  frequencyExtractionMethodStore,
+  symbolizationMethodStore,
+  noteDetectionConfigStore,
   thresholdConfigStore,
 );
 bindEncoderControls(app, logger, currentAudioStore);
@@ -63,8 +66,9 @@ bindDecodeControls(
   app,
   logger,
   currentAudioStore,
-  audioAnalysisPackageStore,
-  decodeStrategyStore,
+  frequencyExtractionMethodStore,
+  symbolizationMethodStore,
+  noteDetectionConfigStore,
   thresholdConfigStore,
 );
 logger.info("ODDiO pipeline workbench rendered", {

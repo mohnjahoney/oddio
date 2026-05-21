@@ -82,7 +82,66 @@ export function renderWorkbench(root: HTMLElement, model: WorkbenchModel): void 
             <div class="group-heading">
               <span class="panel-kicker">Encode Params</span>
             </div>
-            ${renderParameterList(model.encodingParameters)}
+            <div class="encode-parameter-controls">
+              <label class="analysis-control">
+                <span class="analysis-control-label">duration ms</span>
+                <span class="analysis-control-inputs single-input">
+                  <input
+                    id="encode-duration-input"
+                    type="number"
+                    min="20"
+                    max="2000"
+                    step="10"
+                    value="250"
+                  />
+                </span>
+              </label>
+              <label class="analysis-control">
+                <span class="analysis-control-label">gap ms</span>
+                <span class="analysis-control-inputs single-input">
+                  <input
+                    id="encode-gap-input"
+                    type="number"
+                    min="0"
+                    max="1000"
+                    step="10"
+                    value="50"
+                  />
+                </span>
+              </label>
+              <label class="analysis-control">
+                <span class="analysis-control-label">volume</span>
+                <span class="analysis-control-inputs single-input">
+                  <input
+                    id="encode-volume-input"
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value="0.8"
+                  />
+                </span>
+              </label>
+              <label class="analysis-control">
+                <span class="analysis-control-label">wave</span>
+                <span class="analysis-control-inputs single-input">
+                  <select id="encode-wave-select">
+                    <option value="sine">Sine</option>
+                    <option value="square">Square</option>
+                    <option value="triangle">Triangle</option>
+                    <option value="sawtooth">Sawtooth</option>
+                  </select>
+                </span>
+              </label>
+              <label class="analysis-control">
+                <span class="analysis-control-label">frame</span>
+                <span class="analysis-control-inputs single-input">
+                  <select id="encode-frame-select">
+                    <option value="none">None</option>
+                  </select>
+                </span>
+              </label>
+            </div>
           </div>
 
           <output class="summary-readout" aria-label="Generated signal summary">
@@ -119,108 +178,201 @@ export function renderWorkbench(root: HTMLElement, model: WorkbenchModel): void 
           </div>
 
           <div class="analysis-controls" aria-label="Spectrogram analysis controls">
-            <label>
-              <span>analysis</span>
-              <select id="analysis-package-select">
-                <option value="HomeMade">HomeMade</option>
-                <option value="Pitchy">Pitchy</option>
-              </select>
-            </label>
-            <label>
-              <span>strategy</span>
-              <select id="decode-strategy-select">
-                <option value="FixedGrid">Fixed Grid</option>
-                <option value="Threshold">Threshold</option>
-              </select>
-            </label>
-            <label class="checkbox-control">
-              <span>overlay</span>
-              <input id="pitch-overlay-toggle" type="checkbox" checked />
-            </label>
-            <label class="checkbox-control">
-              <span>pitch line</span>
-              <input id="pitch-estimate-toggle" type="checkbox" />
-            </label>
-            <label>
-              <span>f bins</span>
-              <input
-                id="frequency-bin-slider"
-                type="range"
-                min="24"
-                max="288"
-                step="12"
-                value="144"
-              />
-              <input
-                id="frequency-bin-input"
-                type="number"
-                min="24"
-                max="288"
-                step="12"
-                value="144"
-              />
-            </label>
-            <label>
-              <span>t bins</span>
-              <input
-                id="time-slice-slider"
-                type="range"
-                min="40"
-                max="240"
-                step="10"
-                value="120"
-              />
-              <input
-                id="time-slice-input"
-                type="number"
-                min="40"
-                max="240"
-                step="10"
-                value="120"
-              />
-            </label>
+            <div class="analysis-control">
+              <label class="analysis-control-label" for="frequency-method-select">FREQ</label>
+              <span class="analysis-control-inputs single-input">
+                <select id="frequency-method-select">
+                  <option value="HomeMade">HomeMade</option>
+                  <option value="Pitchy">Pitchy</option>
+                </select>
+              </span>
+            </div>
+            <div class="analysis-control">
+              <label class="analysis-control-label" for="symbolization-method-select">NOTE</label>
+              <span class="analysis-control-inputs single-input">
+                <select id="symbolization-method-select">
+                  <option value="FixedGrid">Fixed Grid</option>
+                  <option value="Threshold">Threshold</option>
+                </select>
+              </span>
+            </div>
+            <div class="analysis-control">
+              <label class="analysis-control-label" for="pitch-overlay-toggle">overlay</label>
+              <span class="analysis-control-inputs checkbox-input">
+                <input id="pitch-overlay-toggle" type="checkbox" checked />
+              </span>
+            </div>
+            <div class="analysis-control">
+              <label class="analysis-control-label" for="pitch-estimate-toggle">pitch line</label>
+              <span class="analysis-control-inputs checkbox-input">
+                <input id="pitch-estimate-toggle" type="checkbox" />
+              </span>
+            </div>
+            <div class="analysis-control">
+              <label class="analysis-control-label" for="frequency-bin-input">f bins</label>
+              <span class="analysis-control-inputs range-number-inputs">
+                <input
+                  id="frequency-bin-slider"
+                  type="range"
+                  min="24"
+                  max="288"
+                  step="12"
+                  value="144"
+                />
+                <input
+                  id="frequency-bin-input"
+                  type="number"
+                  min="24"
+                  max="288"
+                  step="12"
+                  value="144"
+                />
+              </span>
+            </div>
+            <div class="analysis-control">
+              <label class="analysis-control-label" for="time-slice-input">t bins</label>
+              <span class="analysis-control-inputs range-number-inputs">
+                <input
+                  id="time-slice-slider"
+                  type="range"
+                  min="40"
+                  max="240"
+                  step="10"
+                  value="120"
+                />
+                <input
+                  id="time-slice-input"
+                  type="number"
+                  min="40"
+                  max="240"
+                  step="10"
+                  value="120"
+                />
+              </span>
+            </div>
             <div
-              class="strategy-parameter-panel"
+              class="symbolization-parameter-panel"
+              id="fixed-grid-parameter-panel"
+              aria-label="Fixed grid note parameters"
+            >
+              <div class="symbolization-parameter-heading">
+                <span>NOTE Parameters</span>
+              </div>
+              <div class="analysis-control">
+                <label class="analysis-control-label" for="fixed-grid-duration-input">
+                  duration ms
+                </label>
+                <span class="analysis-control-inputs single-input">
+                  <input
+                    id="fixed-grid-duration-input"
+                    type="number"
+                    min="20"
+                    max="2000"
+                    step="10"
+                    value="250"
+                  />
+                </span>
+              </div>
+              <div class="analysis-control">
+                <label class="analysis-control-label" for="fixed-grid-gap-input">
+                  gap ms
+                </label>
+                <span class="analysis-control-inputs single-input">
+                  <input
+                    id="fixed-grid-gap-input"
+                    type="number"
+                    min="0"
+                    max="1000"
+                    step="10"
+                    value="50"
+                  />
+                </span>
+              </div>
+              <div class="analysis-control">
+                <label class="analysis-control-label" for="fixed-grid-window-input">
+                  window ms
+                </label>
+                <span class="analysis-control-inputs single-input">
+                  <input
+                    id="fixed-grid-window-input"
+                    type="number"
+                    min="20"
+                    max="2000"
+                    step="10"
+                    value="180"
+                  />
+                </span>
+              </div>
+            </div>
+            <div
+              class="symbolization-parameter-panel"
               id="threshold-parameter-panel"
-              aria-label="Threshold decode strategy parameters"
+              aria-label="Threshold note parameters"
               hidden
             >
-              <div class="strategy-parameter-heading">
-                <span>Decode Strategy Parameters</span>
+              <div class="symbolization-parameter-heading">
+                <span>NOTE Parameters</span>
               </div>
-              <label>
-                <span>volume</span>
-                <input
-                  id="threshold-volume-input"
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.005"
-                  value="0.02"
-                />
-              </label>
-              <label>
-                <span>clarity</span>
-                <input
-                  id="threshold-clarity-input"
-                  type="number"
-                  min="0.01"
-                  max="1"
-                  step="0.01"
-                  value="0.75"
-                />
-              </label>
-              <label>
-                <span>duration ms</span>
-                <input
-                  id="threshold-duration-input"
-                  type="number"
-                  min="20"
-                  max="1000"
-                  step="10"
-                  value="80"
-                />
-              </label>
+              <div class="analysis-control">
+                <label class="analysis-control-label" for="threshold-volume-input">
+                  volume
+                </label>
+                <span class="analysis-control-inputs single-input">
+                  <input
+                    id="threshold-volume-input"
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.005"
+                    value="0.02"
+                  />
+                </span>
+              </div>
+              <div class="analysis-control">
+                <label class="analysis-control-label" for="threshold-clarity-input">
+                  clarity
+                </label>
+                <span class="analysis-control-inputs single-input">
+                  <input
+                    id="threshold-clarity-input"
+                    type="number"
+                    min="0.01"
+                    max="1"
+                    step="0.01"
+                    value="0.75"
+                  />
+                </span>
+              </div>
+              <div class="analysis-control">
+                <label class="analysis-control-label" for="threshold-duration-input">
+                  duration ms
+                </label>
+                <span class="analysis-control-inputs single-input">
+                  <input
+                    id="threshold-duration-input"
+                    type="number"
+                    min="20"
+                    max="1000"
+                    step="10"
+                    value="80"
+                  />
+                </span>
+              </div>
+              <div class="analysis-control">
+                <label class="analysis-control-label" for="threshold-gap-input">
+                  gap tolerance ms
+                </label>
+                <span class="analysis-control-inputs single-input">
+                  <input
+                    id="threshold-gap-input"
+                    type="number"
+                    min="0"
+                    max="1000"
+                    step="10"
+                    value="40"
+                  />
+                </span>
+              </div>
             </div>
           </div>
 

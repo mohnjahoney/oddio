@@ -12,6 +12,7 @@ export interface ThresholdNoteDetectionConfig {
   volumeThreshold: number;
   clarityThreshold: number;
   minimumNoteDurationMs: number;
+  maximumGapDurationMs: number;
 }
 
 export interface ThresholdNoteDetectionConfigStore {
@@ -55,6 +56,7 @@ export const DEFAULT_THRESHOLD_NOTE_DETECTION_CONFIG: ThresholdNoteDetectionConf
   volumeThreshold: 0.02,
   clarityThreshold: 0.75,
   minimumNoteDurationMs: 80,
+  maximumGapDurationMs: 40,
 };
 
 export function createThresholdNoteDetectionConfigStore(
@@ -105,7 +107,11 @@ export function detectProtocolNotesWithThreshold(
     config,
   });
 
-  return collapseSymbolRuns(frames, config.minimumNoteDurationMs / 1_000);
+  return collapseSymbolRuns(
+    frames,
+    config.minimumNoteDurationMs / 1_000,
+    config.maximumGapDurationMs / 1_000,
+  );
 }
 
 export function getFixedGridThresholdConfig(
@@ -153,9 +159,9 @@ function collectThresholdFrames(options: {
     }
 
     const nearestTone = findNearestProtocolTone(pitchHz);
-    const confidence = scorePitchMatch(pitchHz, nearestTone, clarity);
+    const pitchMatchScore = scorePitchMatch(pitchHz, nearestTone, clarity);
 
-    if (confidence <= 0) {
+    if (pitchMatchScore <= 0) {
       frames.push({ kind: "default", startSeconds, endSeconds });
       continue;
     }
@@ -164,7 +170,7 @@ function collectThresholdFrames(options: {
       kind: "symbol",
       symbol: nearestTone.symbol,
       tone: nearestTone,
-      confidence,
+      confidence: clarity,
       startSeconds,
       endSeconds,
     });
@@ -176,24 +182,36 @@ function collectThresholdFrames(options: {
 function collapseSymbolRuns(
   frames: readonly ThresholdFrame[],
   minimumNoteDurationSeconds: number,
+  maximumGapDurationSeconds: number,
 ): DetectedNoteRegion[] {
   const regions: DetectedNoteRegion[] = [];
   let activeRun: SymbolRun | null = null;
+  let activeGapStartSeconds: number | null = null;
 
   for (const frame of frames) {
     if (frame.kind === "default") {
-      commitRun(regions, activeRun, minimumNoteDurationSeconds);
-      activeRun = null;
+      if (activeRun === null) {
+        continue;
+      }
+
+      activeGapStartSeconds ??= frame.startSeconds;
+      if (frame.endSeconds - activeGapStartSeconds >= maximumGapDurationSeconds) {
+        commitRun(regions, activeRun, minimumNoteDurationSeconds);
+        activeRun = null;
+        activeGapStartSeconds = null;
+      }
       continue;
     }
 
     if (activeRun !== null && activeRun.symbol === frame.symbol) {
       activeRun.endSeconds = frame.endSeconds;
       activeRun.confidences.push(frame.confidence);
+      activeGapStartSeconds = null;
       continue;
     }
 
     commitRun(regions, activeRun, minimumNoteDurationSeconds);
+    activeGapStartSeconds = null;
     activeRun = {
       symbol: frame.symbol,
       tone: frame.tone,

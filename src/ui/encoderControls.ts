@@ -1,7 +1,10 @@
 import {
+  DEFAULT_TONE_BUFFER_CONFIG,
   createToneAudioBuffer,
   type CurrentAudioStore,
   type GeneratedToneBuffer,
+  type ToneBufferConfig,
+  type ToneWaveType,
 } from "../audio";
 import { encodeTextMessage, toneToLabel, type EncodedMessage } from "../protocol";
 import type { Logger } from "../shared/logger";
@@ -14,6 +17,11 @@ interface EncoderElements {
   hexOutput: HTMLTextAreaElement;
   tonesOutput: HTMLTextAreaElement;
   bytesOutput: HTMLElement;
+  durationInput: HTMLInputElement;
+  gapInput: HTMLInputElement;
+  volumeInput: HTMLInputElement;
+  waveSelect: HTMLSelectElement;
+  frameSelect: HTMLSelectElement;
   signalSummary: HTMLElement;
   debugStatus: HTMLElement;
 }
@@ -41,8 +49,13 @@ export function bindEncoderControls(
   elements.button.addEventListener("click", () => {
     const message = elements.input.value;
     const encodedMessage = encodeTextMessage(message);
+    const toneConfig = readToneBufferConfig(elements);
     audioContext = audioContext ?? new AudioContext();
-    const generatedAudio = createToneAudioBuffer(audioContext, encodedMessage.tones);
+    const generatedAudio = createToneAudioBuffer(
+      audioContext,
+      encodedMessage.tones,
+      toneConfig,
+    );
 
     currentAudioStore.set(generatedAudio);
     renderEncodedMessage(elements, encodedMessage, generatedAudio);
@@ -52,6 +65,11 @@ export function bindEncoderControls(
       toneCount: encodedMessage.tones.length,
       durationSeconds: generatedAudio?.durationSeconds ?? 0,
       sampleRate: generatedAudio?.sampleRate ?? audioContext.sampleRate,
+      toneDurationMs: toneConfig.toneDurationMs,
+      gapDurationMs: toneConfig.gapDurationMs,
+      volume: toneConfig.volume,
+      waveType: toneConfig.waveType,
+      frame: elements.frameSelect.value,
     });
   });
 }
@@ -65,9 +83,48 @@ function getEncoderElements(root: HTMLElement): EncoderElements {
     hexOutput: getElement(root, "#generated-hex", HTMLTextAreaElement),
     tonesOutput: getElement(root, "#generated-tones", HTMLTextAreaElement),
     bytesOutput: getElement(root, "#generated-bytes", HTMLElement),
+    durationInput: getElement(root, "#encode-duration-input", HTMLInputElement),
+    gapInput: getElement(root, "#encode-gap-input", HTMLInputElement),
+    volumeInput: getElement(root, "#encode-volume-input", HTMLInputElement),
+    waveSelect: getElement(root, "#encode-wave-select", HTMLSelectElement),
+    frameSelect: getElement(root, "#encode-frame-select", HTMLSelectElement),
     signalSummary: getElement(root, "#generated-signal-summary", HTMLElement),
     debugStatus: getElement(root, "#debug-status", HTMLElement),
   };
+}
+
+function readToneBufferConfig(elements: EncoderElements): ToneBufferConfig {
+  const waveType = readWaveType(elements.waveSelect.value);
+  elements.waveSelect.value = waveType;
+  elements.frameSelect.value = "none";
+
+  return {
+    ...DEFAULT_TONE_BUFFER_CONFIG,
+    toneDurationMs: readNumberInput(elements.durationInput),
+    gapDurationMs: readNumberInput(elements.gapInput),
+    volume: readNumberInput(elements.volumeInput),
+    waveType,
+  };
+}
+
+function readWaveType(value: string): ToneWaveType {
+  if (value === "square" || value === "triangle" || value === "sawtooth") {
+    return value;
+  }
+
+  return "sine";
+}
+
+function readNumberInput(input: HTMLInputElement): number {
+  const min = Number(input.min);
+  const max = Number(input.max);
+  const step = Number(input.step) || 1;
+  const rawValue = Number(input.value);
+  const value = Number.isFinite(rawValue) ? rawValue : min;
+  const clamped = Math.max(min, Math.min(max, value));
+  const normalized = Math.round(clamped / step) * step;
+  input.value = String(normalized);
+  return normalized;
 }
 
 function renderEncodedMessage(

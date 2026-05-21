@@ -7,7 +7,10 @@ export interface ToneBufferConfig {
   gapDurationMs: number;
   fadeDurationMs: number;
   volume: number;
+  waveType: ToneWaveType;
 }
+
+export type ToneWaveType = "sine" | "square" | "triangle" | "sawtooth";
 
 export interface GeneratedToneBuffer extends CurrentAudioBuffer {
   sourceType: "generated";
@@ -20,6 +23,7 @@ export const DEFAULT_TONE_BUFFER_CONFIG: ToneBufferConfig = {
   gapDurationMs: 50,
   fadeDurationMs: 5,
   volume: 0.8,
+  waveType: "sine",
 };
 
 export function createToneAudioBuffer(
@@ -72,8 +76,26 @@ function writeTone(
     const seconds = frame / config.sampleRate;
     const envelope = getFadeEnvelope(frame, toneFrameCount, fadeFrameCount);
     channel[absoluteFrame] =
-      Math.sin(2 * Math.PI * tone.frequencyHz * seconds) * config.volume * envelope;
+      getWaveSample(config.waveType, tone.frequencyHz, seconds) * config.volume * envelope;
   }
+}
+
+function getWaveSample(waveType: ToneWaveType, frequencyHz: number, seconds: number): number {
+  const cycle = (frequencyHz * seconds) % 1;
+
+  if (waveType === "square") {
+    return cycle < 0.5 ? 1 : -1;
+  }
+
+  if (waveType === "triangle") {
+    return 4 * Math.abs(cycle - 0.5) - 1;
+  }
+
+  if (waveType === "sawtooth") {
+    return 2 * cycle - 1;
+  }
+
+  return Math.sin(2 * Math.PI * cycle);
 }
 
 function getFadeEnvelope(

@@ -1,6 +1,6 @@
 import { PitchDetector } from "pitchy";
 import { HEX_SYMBOLS, lookupTone } from "../protocol";
-import type { AudioAnalysisPackage } from "./audioAnalysisPackage";
+import type { FrequencyExtractionMethod } from "./frequencyExtractionMethod";
 import type { SpectralDensityConfig } from "./spectralDensity";
 
 export interface PitchEstimate {
@@ -11,10 +11,10 @@ export interface PitchEstimate {
 
 export function estimatePitchSeries(
   buffer: AudioBuffer,
-  packageName: AudioAnalysisPackage,
+  frequencyMethod: FrequencyExtractionMethod,
   config: SpectralDensityConfig,
 ): PitchEstimate[] {
-  if (packageName === "Pitchy") {
+  if (frequencyMethod === "Pitchy") {
     return estimatePitchSeriesWithPitchy(buffer, config);
   }
 

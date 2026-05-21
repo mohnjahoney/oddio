@@ -1,16 +1,18 @@
 import type { CurrentAudioBuffer, CurrentAudioStore } from "../audio";
 import {
-  AUDIO_ANALYSIS_PACKAGES,
-  DECODE_STRATEGIES,
+  FREQUENCY_EXTRACTION_METHODS,
+  SYMBOLIZATION_METHODS,
   DEFAULT_SPECTRAL_DENSITY_CONFIG,
   analyzeProtocolNotes,
   computeSpectralDensity,
   estimatePitchSeries,
   DEFAULT_NOTE_DETECTION_CONFIG,
-  type AudioAnalysisPackage,
-  type AudioAnalysisPackageStore,
-  type DecodeStrategy,
-  type DecodeStrategyStore,
+  type FrequencyExtractionMethod,
+  type FrequencyExtractionMethodStore,
+  type NoteDetectionConfig,
+  type NoteDetectionConfigStore,
+  type SymbolizationMethod,
+  type SymbolizationMethodStore,
   type DetectedNoteRegion,
   type SpectralDensity,
   type SpectralDensityConfig,
@@ -32,14 +34,19 @@ interface AudioWorkspaceElements {
   frequencyBinInput: HTMLInputElement;
   timeSliceSlider: HTMLInputElement;
   timeSliceInput: HTMLInputElement;
-  analysisPackageSelect: HTMLSelectElement;
-  decodeStrategySelect: HTMLSelectElement;
+  frequencyMethodSelect: HTMLSelectElement;
+  symbolizationMethodSelect: HTMLSelectElement;
   pitchOverlayToggle: HTMLInputElement;
   pitchEstimateToggle: HTMLInputElement;
+  fixedGridParameterPanel: HTMLElement;
+  fixedGridDurationInput: HTMLInputElement;
+  fixedGridGapInput: HTMLInputElement;
+  fixedGridWindowInput: HTMLInputElement;
   thresholdParameterPanel: HTMLElement;
   thresholdVolumeInput: HTMLInputElement;
   thresholdClarityInput: HTMLInputElement;
   thresholdDurationInput: HTMLInputElement;
+  thresholdGapInput: HTMLInputElement;
   waveformDisplay: HTMLElement;
   decodeButton: HTMLButtonElement;
   exportButton: HTMLButtonElement;
@@ -49,22 +56,29 @@ interface AudioWorkspaceElements {
 export function bindAudioWorkspaceView(
   root: HTMLElement,
   currentAudioStore: CurrentAudioStore,
-  audioAnalysisPackageStore: AudioAnalysisPackageStore,
-  decodeStrategyStore: DecodeStrategyStore,
+  frequencyExtractionMethodStore: FrequencyExtractionMethodStore,
+  symbolizationMethodStore: SymbolizationMethodStore,
+  noteDetectionConfigStore: NoteDetectionConfigStore,
   thresholdConfigStore: ThresholdNoteDetectionConfigStore,
 ): void {
   const elements = getAudioWorkspaceElements(root);
   let currentAudio: CurrentAudioBuffer | null = null;
-  let audioAnalysisPackage = audioAnalysisPackageStore.get();
-  let decodeStrategy = decodeStrategyStore.get();
+  let frequencyExtractionMethod = frequencyExtractionMethodStore.get();
+  let symbolizationMethod = symbolizationMethodStore.get();
+  let noteDetectionConfig = noteDetectionConfigStore.get();
   let thresholdConfig = thresholdConfigStore.get();
   let showPitchOverlay = elements.pitchOverlayToggle.checked;
   let showPitchEstimateLine = elements.pitchEstimateToggle.checked;
   const spectralConfig = { ...DEFAULT_SPECTRAL_DENSITY_CONFIG };
   renderPitchGuides(elements.pitchGuideLayer, spectralConfig);
-  elements.analysisPackageSelect.value = audioAnalysisPackage;
-  elements.decodeStrategySelect.value = decodeStrategy;
-  renderThresholdParameterControls(elements, decodeStrategy, thresholdConfig);
+  elements.frequencyMethodSelect.value = frequencyExtractionMethod;
+  elements.symbolizationMethodSelect.value = symbolizationMethod;
+  renderSymbolizationParameterControls(
+    elements,
+    symbolizationMethod,
+    noteDetectionConfig,
+    thresholdConfig,
+  );
 
   bindAnalysisControlPair({
     slider: elements.frequencyBinSlider,
@@ -76,8 +90,9 @@ export function bindAudioWorkspaceView(
         elements,
         currentAudio,
         spectralConfig,
-        audioAnalysisPackage,
-        decodeStrategy,
+        frequencyExtractionMethod,
+        symbolizationMethod,
+        noteDetectionConfig,
         thresholdConfig,
         showPitchOverlay,
         showPitchEstimateLine,
@@ -95,8 +110,9 @@ export function bindAudioWorkspaceView(
         elements,
         currentAudio,
         spectralConfig,
-        audioAnalysisPackage,
-        decodeStrategy,
+        frequencyExtractionMethod,
+        symbolizationMethod,
+        noteDetectionConfig,
         thresholdConfig,
         showPitchOverlay,
         showPitchEstimateLine,
@@ -104,16 +120,20 @@ export function bindAudioWorkspaceView(
     },
   });
 
-  elements.analysisPackageSelect.addEventListener("change", () => {
-    const nextPackage = readAudioAnalysisPackage(elements.analysisPackageSelect.value);
-    elements.analysisPackageSelect.value = nextPackage;
-    audioAnalysisPackageStore.set(nextPackage);
+  elements.frequencyMethodSelect.addEventListener("change", () => {
+    const nextFrequencyMethod = readFrequencyExtractionMethod(
+      elements.frequencyMethodSelect.value,
+    );
+    elements.frequencyMethodSelect.value = nextFrequencyMethod;
+    frequencyExtractionMethodStore.set(nextFrequencyMethod);
   });
 
-  elements.decodeStrategySelect.addEventListener("change", () => {
-    const nextStrategy = readDecodeStrategy(elements.decodeStrategySelect.value);
-    elements.decodeStrategySelect.value = nextStrategy;
-    decodeStrategyStore.set(nextStrategy);
+  elements.symbolizationMethodSelect.addEventListener("change", () => {
+    const nextSymbolizationMethod = readSymbolizationMethod(
+      elements.symbolizationMethodSelect.value,
+    );
+    elements.symbolizationMethodSelect.value = nextSymbolizationMethod;
+    symbolizationMethodStore.set(nextSymbolizationMethod);
   });
 
   elements.pitchOverlayToggle.addEventListener("change", () => {
@@ -127,7 +147,7 @@ export function bindAudioWorkspaceView(
       elements,
       currentAudio,
       spectralConfig,
-      audioAnalysisPackage,
+      frequencyExtractionMethod,
       showPitchEstimateLine,
     );
   });
@@ -136,45 +156,78 @@ export function bindAudioWorkspaceView(
     thresholdConfigStore.set(config);
   });
 
+  bindFixedGridParameterControls(elements, (config) => {
+    noteDetectionConfigStore.set(config);
+  });
+
   currentAudioStore.subscribe((audio) => {
     currentAudio = audio;
     renderCurrentAudioState(
       elements,
       audio,
       spectralConfig,
-      audioAnalysisPackage,
-      decodeStrategy,
+      frequencyExtractionMethod,
+      symbolizationMethod,
+      noteDetectionConfig,
       thresholdConfig,
       showPitchOverlay,
       showPitchEstimateLine,
     );
   });
 
-  audioAnalysisPackageStore.subscribe((packageName) => {
-    audioAnalysisPackage = packageName;
-    elements.analysisPackageSelect.value = packageName;
+  frequencyExtractionMethodStore.subscribe((frequencyMethod) => {
+    frequencyExtractionMethod = frequencyMethod;
+    elements.frequencyMethodSelect.value = frequencyMethod;
     renderCurrentAudioState(
       elements,
       currentAudio,
       spectralConfig,
-      audioAnalysisPackage,
-      decodeStrategy,
+      frequencyExtractionMethod,
+      symbolizationMethod,
+      noteDetectionConfig,
       thresholdConfig,
       showPitchOverlay,
       showPitchEstimateLine,
     );
   });
 
-  decodeStrategyStore.subscribe((strategy) => {
-    decodeStrategy = strategy;
-    elements.decodeStrategySelect.value = strategy;
-    renderThresholdParameterControls(elements, decodeStrategy, thresholdConfig);
+  symbolizationMethodStore.subscribe((nextSymbolizationMethod) => {
+    symbolizationMethod = nextSymbolizationMethod;
+    elements.symbolizationMethodSelect.value = nextSymbolizationMethod;
+    renderSymbolizationParameterControls(
+      elements,
+      symbolizationMethod,
+      noteDetectionConfig,
+      thresholdConfig,
+    );
     renderCurrentAudioState(
       elements,
       currentAudio,
       spectralConfig,
-      audioAnalysisPackage,
-      decodeStrategy,
+      frequencyExtractionMethod,
+      symbolizationMethod,
+      noteDetectionConfig,
+      thresholdConfig,
+      showPitchOverlay,
+      showPitchEstimateLine,
+    );
+  });
+
+  noteDetectionConfigStore.subscribe((config) => {
+    noteDetectionConfig = config;
+    renderSymbolizationParameterControls(
+      elements,
+      symbolizationMethod,
+      noteDetectionConfig,
+      thresholdConfig,
+    );
+    renderCurrentAudioState(
+      elements,
+      currentAudio,
+      spectralConfig,
+      frequencyExtractionMethod,
+      symbolizationMethod,
+      noteDetectionConfig,
       thresholdConfig,
       showPitchOverlay,
       showPitchEstimateLine,
@@ -183,13 +236,19 @@ export function bindAudioWorkspaceView(
 
   thresholdConfigStore.subscribe((config) => {
     thresholdConfig = config;
-    renderThresholdParameterControls(elements, decodeStrategy, thresholdConfig);
+    renderSymbolizationParameterControls(
+      elements,
+      symbolizationMethod,
+      noteDetectionConfig,
+      thresholdConfig,
+    );
     renderCurrentAudioState(
       elements,
       currentAudio,
       spectralConfig,
-      audioAnalysisPackage,
-      decodeStrategy,
+      frequencyExtractionMethod,
+      symbolizationMethod,
+      noteDetectionConfig,
       thresholdConfig,
       showPitchOverlay,
       showPitchEstimateLine,
@@ -211,14 +270,23 @@ function getAudioWorkspaceElements(root: HTMLElement): AudioWorkspaceElements {
     frequencyBinInput: getElement(root, "#frequency-bin-input", HTMLInputElement),
     timeSliceSlider: getElement(root, "#time-slice-slider", HTMLInputElement),
     timeSliceInput: getElement(root, "#time-slice-input", HTMLInputElement),
-    analysisPackageSelect: getElement(root, "#analysis-package-select", HTMLSelectElement),
-    decodeStrategySelect: getElement(root, "#decode-strategy-select", HTMLSelectElement),
+    frequencyMethodSelect: getElement(root, "#frequency-method-select", HTMLSelectElement),
+    symbolizationMethodSelect: getElement(
+      root,
+      "#symbolization-method-select",
+      HTMLSelectElement,
+    ),
     pitchOverlayToggle: getElement(root, "#pitch-overlay-toggle", HTMLInputElement),
     pitchEstimateToggle: getElement(root, "#pitch-estimate-toggle", HTMLInputElement),
+    fixedGridParameterPanel: getElement(root, "#fixed-grid-parameter-panel", HTMLElement),
+    fixedGridDurationInput: getElement(root, "#fixed-grid-duration-input", HTMLInputElement),
+    fixedGridGapInput: getElement(root, "#fixed-grid-gap-input", HTMLInputElement),
+    fixedGridWindowInput: getElement(root, "#fixed-grid-window-input", HTMLInputElement),
     thresholdParameterPanel: getElement(root, "#threshold-parameter-panel", HTMLElement),
     thresholdVolumeInput: getElement(root, "#threshold-volume-input", HTMLInputElement),
     thresholdClarityInput: getElement(root, "#threshold-clarity-input", HTMLInputElement),
     thresholdDurationInput: getElement(root, "#threshold-duration-input", HTMLInputElement),
+    thresholdGapInput: getElement(root, "#threshold-gap-input", HTMLInputElement),
     waveformDisplay: getElement(root, "#waveform-display", HTMLElement),
     decodeButton: getElement(root, "#decode-button", HTMLButtonElement),
     exportButton: getElement(root, "#export-button", HTMLButtonElement),
@@ -230,8 +298,9 @@ function renderCurrentAudioState(
   elements: AudioWorkspaceElements,
   currentAudio: CurrentAudioBuffer | null,
   spectralConfig: SpectralDensityConfig,
-  audioAnalysisPackage: AudioAnalysisPackage,
-  decodeStrategy: DecodeStrategy,
+  frequencyExtractionMethod: FrequencyExtractionMethod,
+  symbolizationMethod: SymbolizationMethod,
+  noteDetectionConfig: NoteDetectionConfig,
   thresholdConfig: ThresholdNoteDetectionConfig,
   showPitchOverlay: boolean,
   showPitchEstimateLine: boolean,
@@ -267,8 +336,9 @@ function renderCurrentAudioState(
     elements,
     currentAudio,
     spectralConfig,
-    audioAnalysisPackage,
-    decodeStrategy,
+    frequencyExtractionMethod,
+    symbolizationMethod,
+    noteDetectionConfig,
     thresholdConfig,
     showPitchOverlay,
   );
@@ -276,7 +346,7 @@ function renderCurrentAudioState(
     elements,
     currentAudio,
     spectralConfig,
-    audioAnalysisPackage,
+    frequencyExtractionMethod,
     showPitchEstimateLine,
   );
   renderWaveformPreview(elements.waveformDisplay, currentAudio.buffer);
@@ -302,7 +372,7 @@ function renderCurrentPitchEstimateLine(
   elements: AudioWorkspaceElements,
   currentAudio: CurrentAudioBuffer | null,
   spectralConfig: SpectralDensityConfig,
-  audioAnalysisPackage: AudioAnalysisPackage,
+  frequencyExtractionMethod: FrequencyExtractionMethod,
   showPitchEstimateLine: boolean,
 ): void {
   clearSpectrogram(elements.pitchEstimateCanvas);
@@ -314,7 +384,7 @@ function renderCurrentPitchEstimateLine(
 
   renderPitchEstimateLine(
     elements.pitchEstimateCanvas,
-    estimatePitchSeries(currentAudio.buffer, audioAnalysisPackage, spectralConfig),
+    estimatePitchSeries(currentAudio.buffer, frequencyExtractionMethod, spectralConfig),
     spectralConfig,
     currentAudio.durationSeconds,
   );
@@ -337,16 +407,17 @@ function renderDetectedNotes(
   elements: AudioWorkspaceElements,
   currentAudio: CurrentAudioBuffer,
   spectralConfig: SpectralDensityConfig,
-  audioAnalysisPackage: AudioAnalysisPackage,
-  decodeStrategy: DecodeStrategy,
+  frequencyExtractionMethod: FrequencyExtractionMethod,
+  symbolizationMethod: SymbolizationMethod,
+  noteDetectionConfig: NoteDetectionConfig,
   thresholdConfig: ThresholdNoteDetectionConfig,
   showPitchOverlay: boolean,
 ): void {
   const regions = analyzeProtocolNotes(
     currentAudio.buffer,
-    audioAnalysisPackage,
-    decodeStrategy,
-    undefined,
+    frequencyExtractionMethod,
+    symbolizationMethod,
+    noteDetectionConfig,
     thresholdConfig,
   );
   elements.noteRegionLayer.innerHTML = showPitchOverlay
@@ -370,23 +441,62 @@ function renderPitchOverlayVisibility(
   elements.noteRegionLayer.hidden = !showPitchOverlay;
 }
 
-function readAudioAnalysisPackage(value: string): AudioAnalysisPackage {
-  return AUDIO_ANALYSIS_PACKAGES.find((packageName) => packageName === value) ?? "HomeMade";
+function readFrequencyExtractionMethod(value: string): FrequencyExtractionMethod {
+  return (
+    FREQUENCY_EXTRACTION_METHODS.find((frequencyMethod) => frequencyMethod === value) ??
+    "HomeMade"
+  );
 }
 
-function readDecodeStrategy(value: string): DecodeStrategy {
-  return DECODE_STRATEGIES.find((strategy) => strategy === value) ?? "FixedGrid";
+function readSymbolizationMethod(value: string): SymbolizationMethod {
+  return (
+    SYMBOLIZATION_METHODS.find((symbolizationMethod) => symbolizationMethod === value) ??
+    "FixedGrid"
+  );
 }
 
-function renderThresholdParameterControls(
+function renderSymbolizationParameterControls(
   elements: AudioWorkspaceElements,
-  decodeStrategy: DecodeStrategy,
-  config: ThresholdNoteDetectionConfig,
+  symbolizationMethod: SymbolizationMethod,
+  noteConfig: NoteDetectionConfig,
+  thresholdConfig: ThresholdNoteDetectionConfig,
 ): void {
-  elements.thresholdParameterPanel.hidden = decodeStrategy !== "Threshold";
-  elements.thresholdVolumeInput.value = String(config.volumeThreshold);
-  elements.thresholdClarityInput.value = String(config.clarityThreshold);
-  elements.thresholdDurationInput.value = String(config.minimumNoteDurationMs);
+  elements.fixedGridParameterPanel.hidden = symbolizationMethod !== "FixedGrid";
+  elements.thresholdParameterPanel.hidden = symbolizationMethod !== "Threshold";
+  elements.fixedGridDurationInput.value = String(noteConfig.toneDurationMs);
+  elements.fixedGridGapInput.value = String(noteConfig.gapDurationMs);
+  elements.fixedGridWindowInput.value = String(noteConfig.windowDurationMs);
+  elements.thresholdVolumeInput.value = String(thresholdConfig.volumeThreshold);
+  elements.thresholdClarityInput.value = String(thresholdConfig.clarityThreshold);
+  elements.thresholdDurationInput.value = String(thresholdConfig.minimumNoteDurationMs);
+  elements.thresholdGapInput.value = String(thresholdConfig.maximumGapDurationMs);
+}
+
+function bindFixedGridParameterControls(
+  elements: AudioWorkspaceElements,
+  onCommit: (config: NoteDetectionConfig) => void,
+): void {
+  const commit = () => {
+    onCommit({
+      ...DEFAULT_NOTE_DETECTION_CONFIG,
+      toneDurationMs: readNumberInput(elements.fixedGridDurationInput),
+      gapDurationMs: readNumberInput(elements.fixedGridGapInput),
+      windowDurationMs: readNumberInput(elements.fixedGridWindowInput),
+    });
+  };
+
+  [
+    elements.fixedGridDurationInput,
+    elements.fixedGridGapInput,
+    elements.fixedGridWindowInput,
+  ].forEach((input) => {
+    input.addEventListener("change", commit);
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        commit();
+      }
+    });
+  });
 }
 
 function bindThresholdParameterControls(
@@ -400,6 +510,7 @@ function bindThresholdParameterControls(
       volumeThreshold: readNumberInput(elements.thresholdVolumeInput),
       clarityThreshold: readNumberInput(elements.thresholdClarityInput),
       minimumNoteDurationMs: readNumberInput(elements.thresholdDurationInput),
+      maximumGapDurationMs: readNumberInput(elements.thresholdGapInput),
     });
   };
 
@@ -407,6 +518,7 @@ function bindThresholdParameterControls(
     elements.thresholdVolumeInput,
     elements.thresholdClarityInput,
     elements.thresholdDurationInput,
+    elements.thresholdGapInput,
   ].forEach((input) => {
     input.addEventListener("change", commit);
     input.addEventListener("keydown", (event) => {

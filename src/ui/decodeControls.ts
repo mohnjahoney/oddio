@@ -1,8 +1,9 @@
 import {
   DEFAULT_NOTE_DETECTION_CONFIG,
   analyzeProtocolNotes,
-  type AudioAnalysisPackageStore,
-  type DecodeStrategyStore,
+  type FrequencyExtractionMethodStore,
+  type NoteDetectionConfigStore,
+  type SymbolizationMethodStore,
   type DetectedNoteRegion,
   type ThresholdNoteDetectionConfigStore,
 } from "../analysis";
@@ -25,8 +26,9 @@ export function bindDecodeControls(
   root: HTMLElement,
   logger: Logger,
   currentAudioStore: CurrentAudioStore,
-  audioAnalysisPackageStore: AudioAnalysisPackageStore,
-  decodeStrategyStore: DecodeStrategyStore,
+  frequencyExtractionMethodStore: FrequencyExtractionMethodStore,
+  symbolizationMethodStore: SymbolizationMethodStore,
+  noteDetectionConfigStore: NoteDetectionConfigStore,
   thresholdConfigStore: ThresholdNoteDetectionConfigStore,
 ): void {
   const elements = getDecodeElements(root);
@@ -57,14 +59,15 @@ export function bindDecodeControls(
     }
 
     try {
-      const audioAnalysisPackage = audioAnalysisPackageStore.get();
-      const decodeStrategy = decodeStrategyStore.get();
+      const frequencyExtractionMethod = frequencyExtractionMethodStore.get();
+      const symbolizationMethod = symbolizationMethodStore.get();
+      const noteDetectionConfig = noteDetectionConfigStore.get();
       const thresholdConfig = thresholdConfigStore.get();
       const regions = analyzeProtocolNotes(
         currentAudio.buffer,
-        audioAnalysisPackage,
-        decodeStrategy,
-        undefined,
+        frequencyExtractionMethod,
+        symbolizationMethod,
+        noteDetectionConfig,
         thresholdConfig,
       );
       const hexStream = regions.map((region) => region.symbol);
@@ -78,11 +81,11 @@ export function bindDecodeControls(
         regions,
         hexStream.length / 2,
       );
-      elements.debugStatus.textContent = `Decoded ${currentAudio.label} with ${audioAnalysisPackage} / ${decodeStrategy} into ${JSON.stringify(decodedText)}. ${formatConfidenceSummary(regions)}.`;
+      elements.debugStatus.textContent = `Decoded ${currentAudio.label} with ${frequencyExtractionMethod} / ${symbolizationMethod} into ${JSON.stringify(decodedText)}. ${formatConfidenceSummary(regions)}.`;
       activateDecodeTab(elements, "text");
       logger.info("Decoded current audio buffer", {
-        audioAnalysisPackage,
-        decodeStrategy,
+        frequencyExtractionMethod,
+        symbolizationMethod,
         sourceType: currentAudio.sourceType,
         symbolCount: hexStream.length,
         byteCount: hexStream.length / 2,

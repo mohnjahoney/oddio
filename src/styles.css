@@ -317,6 +317,18 @@ h2 {
   margin-top: 12px;
 }
 
+.encode-parameter-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.encode-parameter-controls .analysis-control {
+  min-height: 38px;
+  border-color: rgba(38, 50, 61, 0.78);
+  background: #080c11;
+}
+
 .parameter-list div,
 .summary-readout {
   display: grid;
@@ -509,9 +521,9 @@ h2 {
   gap: 10px;
 }
 
-.analysis-controls label {
+.analysis-control {
   display: grid;
-  grid-template-columns: minmax(96px, 0.75fr) minmax(120px, 1fr) 72px;
+  grid-template-columns: minmax(92px, 0.42fr) minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   min-height: 42px;
@@ -521,8 +533,23 @@ h2 {
   background: #080c11;
 }
 
-.analysis-controls .checkbox-control {
-  grid-template-columns: minmax(96px, 0.75fr) auto;
+.analysis-control-inputs {
+  display: grid;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.single-input {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.range-number-inputs {
+  grid-template-columns: minmax(0, 1fr) 72px;
+}
+
+.checkbox-input {
+  grid-template-columns: auto;
   justify-content: start;
 }
 
@@ -532,7 +559,8 @@ h2 {
   accent-color: var(--accent-strong);
 }
 
-.analysis-controls span {
+.analysis-control-label,
+.symbolization-parameter-heading span {
   color: var(--muted);
   font-size: 0.76rem;
   font-weight: 800;
@@ -545,8 +573,9 @@ h2 {
   accent-color: var(--accent-strong);
 }
 
-.analysis-controls select {
-  grid-column: 2 / 4;
+.analysis-controls select,
+.encode-parameter-controls select {
+  width: 100%;
   min-height: 30px;
   border: 1px solid var(--line);
   border-radius: 5px;
@@ -557,7 +586,8 @@ h2 {
   font-weight: 700;
 }
 
-.analysis-controls input[type="number"] {
+.analysis-controls input[type="number"],
+.encode-parameter-controls input[type="number"] {
   width: 100%;
   min-height: 30px;
   border: 1px solid var(--line);
@@ -570,7 +600,7 @@ h2 {
   text-align: right;
 }
 
-.strategy-parameter-panel {
+.symbolization-parameter-panel {
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -581,11 +611,12 @@ h2 {
   background: #080c11;
 }
 
-.strategy-parameter-heading {
+.symbolization-parameter-heading,
+.symbolization-parameter-panel .analysis-control {
   grid-column: 1 / -1;
 }
 
-.strategy-parameter-panel label {
+.symbolization-parameter-panel .analysis-control {
   border-color: rgba(38, 50, 61, 0.78);
   background: #070b10;
 }

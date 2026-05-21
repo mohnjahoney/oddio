@@ -8,6 +8,14 @@ export interface NoteDetectionConfig {
   lowConfidenceThreshold: number;
 }
 
+export interface NoteDetectionConfigStore {
+  get(): NoteDetectionConfig;
+  set(config: NoteDetectionConfig): void;
+  subscribe(listener: NoteDetectionConfigListener): () => void;
+}
+
+export type NoteDetectionConfigListener = (config: NoteDetectionConfig) => void;
+
 export interface DetectedNoteRegion {
   symbol: HexSymbol;
   tone: ToneSymbol;
@@ -23,6 +31,33 @@ export const DEFAULT_NOTE_DETECTION_CONFIG: NoteDetectionConfig = {
   silenceThreshold: 0.02,
   lowConfidenceThreshold: 0.45,
 };
+
+export function createNoteDetectionConfigStore(
+  initialConfig: NoteDetectionConfig = DEFAULT_NOTE_DETECTION_CONFIG,
+): NoteDetectionConfigStore {
+  let currentConfig = { ...initialConfig };
+  const listeners = new Set<NoteDetectionConfigListener>();
+
+  return {
+    get() {
+      return { ...currentConfig };
+    },
+    set(config) {
+      currentConfig = { ...config };
+      for (const listener of listeners) {
+        listener({ ...currentConfig });
+      }
+    },
+    subscribe(listener) {
+      listeners.add(listener);
+      listener({ ...currentConfig });
+
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+}
 
 export function detectProtocolNotes(
   buffer: AudioBuffer,
